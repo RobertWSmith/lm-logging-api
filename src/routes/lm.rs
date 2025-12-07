@@ -56,15 +56,20 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
     .bind(payload.output_tokens)
     .bind(payload.total_tokens)
     .execute(&pool.pool)
-    .await
-    .unwrap();
+    .await;
 
-    (
-        StatusCode::CREATED,
-        Json(LogRecordResponse {
-            id: result.last_insert_rowid(),
-        }),
-    )
+    match result {
+        Ok(result) => (
+            StatusCode::CREATED,
+            Json(LogRecordResponse {
+                id: result.last_insert_rowid(),
+            }),
+        ),
+        Err(_) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(LogRecordResponse { id: -1 }),
+        ),
+    }
 }
 
 #[utoipa::path(
@@ -78,11 +83,15 @@ pub async fn get_log(
     State(pool): State<crate::database::AppState>,
     Path(id): Path<i64>,
 ) -> (StatusCode, Json<LogRecord>) {
-    let result: LogRecord = sqlx::query_as("SELECT * FROM log_records WHERE id = ?")
+    match sqlx::query_as("SELECT * FROM log_records WHERE id = ?")
         .bind(id)
         .fetch_one(&pool.pool)
         .await
-        .unwrap();
-
-    (StatusCode::OK, Json(result))
+    {
+        Ok(result) => (StatusCode::OK, Json(result)),
+        Err(_) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(LogRecord::new_error(id)),
+        ),
+    }
 }
