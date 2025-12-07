@@ -1,2 +1,2 @@
-mod health;
-mod lm;
+pub mod health;
+pub mod lm;

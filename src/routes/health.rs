@@ -1,0 +1,10 @@
+#[utoipa::path(
+    get,
+    path = "/health",
+    responses(
+        (status = 200, description = "Health Check OK", body=String)
+    )
+)]
+pub async fn health() -> &'static str {
+    "OK"
+}
