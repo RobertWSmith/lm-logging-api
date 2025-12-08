@@ -1,7 +1,35 @@
 use super::prompt::Prompt;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Type};
+use time::OffsetDateTime;
 use utoipa::ToSchema;
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, ToSchema, FromRow, Type)]
+pub struct CreateLogRecord {
+    pub model_provider: String,
+    pub model_name: String,
+    pub model_version: String,
+    pub app_name: String,
+    pub app_project: String,
+    pub app_version: String,
+    #[sqlx(json)]
+    pub prompt: Vec<Prompt>,
+    pub response: String,
+    pub prompt_user_id: String,
+    pub prompt_app_hostname: String,
+    #[serde(with = "time::serde::iso8601")]
+    pub prompt_submit_ts: OffsetDateTime,
+    #[serde(with = "time::serde::iso8601")]
+    pub response_receipt_ts: OffsetDateTime,
+    pub input_tokens: i64,
+    pub output_tokens: i64,
+    pub total_tokens: i64,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, ToSchema, FromRow, Type)]
+pub struct LogRecordResponse {
+    pub id: i64,
+}
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, ToSchema, FromRow, Type)]
 pub struct LogRecord {
@@ -17,8 +45,10 @@ pub struct LogRecord {
     pub response: String,
     pub prompt_user_id: String,
     pub prompt_app_hostname: String,
-    pub prompt_submit_ts: String,
-    pub response_receipt_ts: String,
+    #[serde(with = "time::serde::iso8601")]
+    pub prompt_submit_ts: OffsetDateTime,
+    #[serde(with = "time::serde::iso8601")]
+    pub response_receipt_ts: OffsetDateTime,
     pub input_tokens: i64,
     pub output_tokens: i64,
     pub total_tokens: i64,
@@ -37,8 +67,8 @@ impl LogRecord {
         response: String,
         prompt_user_id: String,
         prompt_app_hostname: String,
-        prompt_submit_ts: String,
-        response_receipt_ts: String,
+        prompt_submit_ts: OffsetDateTime,
+        response_receipt_ts: OffsetDateTime,
         input_tokens: i64,
         output_tokens: i64,
         total_tokens: i64,
@@ -63,6 +93,27 @@ impl LogRecord {
         }
     }
 
+    pub fn from_create_log_record(id: i64, create_log_record: CreateLogRecord) -> Self {
+        Self {
+            id,
+            model_provider: create_log_record.model_provider,
+            model_name: create_log_record.model_name,
+            model_version: create_log_record.model_version,
+            app_name: create_log_record.app_name,
+            app_project: create_log_record.app_project,
+            app_version: create_log_record.app_version,
+            prompt: create_log_record.prompt,
+            response: create_log_record.response,
+            prompt_user_id: create_log_record.prompt_user_id,
+            prompt_app_hostname: create_log_record.prompt_app_hostname,
+            prompt_submit_ts: create_log_record.prompt_submit_ts,
+            response_receipt_ts: create_log_record.response_receipt_ts,
+            input_tokens: create_log_record.input_tokens,
+            output_tokens: create_log_record.output_tokens,
+            total_tokens: create_log_record.total_tokens,
+        }
+    }
+
     pub fn new_error(id: i64) -> Self {
         Self::new(
             id,
@@ -76,36 +127,11 @@ impl LogRecord {
             "".into(),
             "".into(),
             "".into(),
-            "".into(),
-            "".into(),
+            OffsetDateTime::UNIX_EPOCH,
+            OffsetDateTime::UNIX_EPOCH,
             -1,
             -1,
             -2,
         )
     }
-}
-
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, ToSchema, FromRow, Type)]
-pub struct CreateLogRecord {
-    pub model_provider: String,
-    pub model_name: String,
-    pub model_version: String,
-    pub app_name: String,
-    pub app_project: String,
-    pub app_version: String,
-    #[sqlx(json)]
-    pub prompt: Vec<Prompt>,
-    pub response: String,
-    pub prompt_user_id: String,
-    pub prompt_app_hostname: String,
-    pub prompt_submit_ts: String,
-    pub response_receipt_ts: String,
-    pub input_tokens: i64,
-    pub output_tokens: i64,
-    pub total_tokens: i64,
-}
-
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, ToSchema, FromRow, Type)]
-pub struct LogRecordResponse {
-    pub id: i64,
 }

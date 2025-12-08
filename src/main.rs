@@ -1,6 +1,6 @@
 use std::error::Error;
 use axum::{middleware, Router};
-use axum::routing::{get, post};
+use axum::routing::{get, post, put};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -19,12 +19,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let pool = database::connect_or_create_db("rust-database.db").await?;
     database::database_setup(&pool).await?;
 
-    println!("Listening on: {}", addr.local_addr().unwrap());
+    println!("Listening on: {}", addr.local_addr()?);
 
     let app = Router::new()
         .route("/api/v1/health", get(health::health))
         .route("/api/v1/lm/log", post(lm::post_log))
         .route("/api/v1/lm/log/{id}", get(lm::get_log))
+        .route("/api/v1/lm/log/{id}", put(lm::put_log))
         .merge(SwaggerUi::new("/swagger/").url("/api/openapi.json", openapi))
         .layer(middleware::from_fn(custom_middleware::logging_middleware))
         .with_state(database::AppState{ pool });

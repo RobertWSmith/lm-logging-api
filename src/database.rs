@@ -31,8 +31,8 @@ pub async fn database_setup(pool: &SqlitePool) -> Result<(), SqlxError> {
             response TEXT NOT NULL,
             prompt_user_id VARCHAR NOT NULL,
             prompt_app_hostname VARCHAR NOT NULL,
-            prompt_submit_ts VARCHAR NOT NULL,
-            response_receipt_ts VARCHAR NOT NULL,
+            prompt_submit_ts DATETIME NOT NULL,
+            response_receipt_ts DATETIME NOT NULL,
             input_tokens INTEGER NOT NULL,
             output_tokens INTEGER NOT NULL,
             total_tokens INTEGER NOT NULL

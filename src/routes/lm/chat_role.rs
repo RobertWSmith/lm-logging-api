@@ -12,4 +12,6 @@ pub enum ChatRole {
     User,
     #[serde(rename = "tool")]
     Tool,
+    #[serde(rename = "function")]
+    Function,
 }
