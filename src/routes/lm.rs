@@ -117,95 +117,48 @@ pub async fn patch_log_record(
     id: i64,
     payload: PatchLogRecord,
 ) -> Result<LogRecord, sqlx::Error> {
-    let mut result = get_log_record(pool, id).await?;
+    let result = get_log_record(pool, id).await?;
 
-    if let Some(model_provider) = payload.model_provider {
-        result.model_provider = model_provider;
-    }
-    if let Some(model_name) = payload.model_name {
-        result.model_name = model_name;
-    }
-    if let Some(model_version) = payload.model_version {
-        result.model_version = model_version;
-    }
-    if let Some(app_name) = payload.app_name {
-        result.app_name = app_name;
-    }
-    if let Some(app_project) = payload.app_project {
-        result.app_project = app_project;
-    }
-    if let Some(app_version) = payload.app_version {
-        result.app_version = app_version;
-    }
-    if let Some(prompt) = payload.prompt {
-        result.prompt = prompt;
-    }
-    if let Some(response) = payload.response {
-        result.response = response;
-    }
-    if let Some(prompt_user_id) = payload.prompt_user_id {
-        result.prompt_user_id = prompt_user_id;
-    }
-    if let Some(prompt_app_hostname) = payload.prompt_app_hostname {
-        result.prompt_app_hostname = prompt_app_hostname;
-    }
-    if let Some(prompt_submit_ts) = payload.prompt_submit_ts {
-        result.prompt_submit_ts = prompt_submit_ts;
-    }
-    if let Some(response_receipt_ts) = payload.response_receipt_ts {
-        result.response_receipt_ts = response_receipt_ts;
-    }
-    if let Some(input_tokens) = payload.input_tokens {
-        result.input_tokens = input_tokens;
-    }
-    if let Some(output_tokens) = payload.output_tokens {
-        result.output_tokens = output_tokens;
-    }
-    if let Some(total_tokens) = payload.total_tokens {
-        result.total_tokens = total_tokens;
-    }
+    let patch_row = CreateLogRecord {
+        model_provider: payload
+            .model_provider
+            .or(Some(result.model_provider))
+            .unwrap(),
+        model_name: payload.model_name.or(Some(result.model_name)).unwrap(),
+        model_version: payload
+            .model_version
+            .or(Some(result.model_version))
+            .unwrap(),
+        app_name: payload.app_name.or(Some(result.app_name)).unwrap(),
+        app_project: payload.app_project.or(Some(result.app_project)).unwrap(),
+        app_version: payload.app_version.or(Some(result.app_version)).unwrap(),
+        prompt: payload.prompt.or(Some(result.prompt)).unwrap(),
+        response: payload.response.or(Some(result.response)).unwrap(),
+        prompt_user_id: payload
+            .prompt_user_id
+            .or(Some(result.prompt_user_id))
+            .unwrap(),
+        prompt_app_hostname: payload
+            .prompt_app_hostname
+            .or(Some(result.prompt_app_hostname))
+            .unwrap(),
+        prompt_submit_ts: payload
+            .prompt_submit_ts
+            .or(Some(result.prompt_submit_ts))
+            .unwrap(),
+        response_receipt_ts: payload
+            .response_receipt_ts
+            .or(Some(result.response_receipt_ts))
+            .unwrap(),
+        input_tokens: payload.input_tokens.or(Some(result.input_tokens)).unwrap(),
+        output_tokens: payload
+            .output_tokens
+            .or(Some(result.output_tokens))
+            .unwrap(),
+        total_tokens: payload.total_tokens.or(Some(result.total_tokens)).unwrap(),
+    };
 
-    sqlx::query(
-        r#"
-UPDATE log_records SET
-    model_provider = ?,
-    model_name = ?,
-    model_version = ?,
-    app_name = ?,
-    app_project = ?,
-    app_version = ?,
-    prompt = ?,
-    response = ?,
-    prompt_user_id = ?,
-    prompt_app_hostname = ?,
-    prompt_submit_ts = ?,
-    response_receipt_ts = ?,
-    input_tokens = ?,
-    output_tokens = ?,
-    total_tokens = ?
-WHERE
-    id = ? "#,
-    )
-    .bind(&result.model_provider)
-    .bind(&result.model_name)
-    .bind(&result.model_version)
-    .bind(&result.app_name)
-    .bind(&result.app_project)
-    .bind(&result.app_version)
-    .bind(serde_json::to_string(&result.prompt).expect("Failed to serialize to JSON"))
-    .bind(&result.response)
-    .bind(&result.prompt_user_id)
-    .bind(&result.prompt_app_hostname)
-    .bind(&result.prompt_submit_ts)
-    .bind(&result.response_receipt_ts)
-    .bind(&result.input_tokens)
-    .bind(&result.output_tokens)
-    .bind(&result.total_tokens)
-    .bind(&id)
-    .execute(pool)
-    .await?;
-
-    Ok(get_log_record(&pool, id).await?)
+    Ok(update_log_record(&pool, id, patch_row).await?)
 }
 
 #[utoipa::path(
