@@ -74,30 +74,17 @@ pub async fn put_log(
     Path(id): Path<i64>,
     Json(payload): Json<CreateLogRecord>,
 ) -> impl IntoResponse {
-    let original = get_log_record(&pool.pool, id).await;
-
-    match original {
-        Ok(_) => {
-            let result = update_log_record(&pool.pool, id, payload).await;
-
-            match result {
-                Ok(_) => (
-                    StatusCode::OK,
-                    Json(get_log_record(&pool.pool, id).await.unwrap()),
-                )
-                    .into_response(),
-                Err(e) => (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(ErrorMessage {
-                        message: format!(
-                            "Failed to update record with id: {} - Error {:#?}",
-                            id, e
-                        ),
-                    }),
-                )
-                    .into_response(),
-            }
-        }
+    match get_log_record(&pool.pool, id).await {
+        Ok(_) => match update_log_record(&pool.pool, id, payload).await {
+            Ok(result) => (StatusCode::OK, Json(result)).into_response(),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorMessage {
+                    message: format!("Failed to update record with id: {} - Error {:#?}", id, e),
+                }),
+            )
+                .into_response(),
+        },
         Err(_) => (
             StatusCode::NOT_FOUND,
             Json(ErrorMessage {

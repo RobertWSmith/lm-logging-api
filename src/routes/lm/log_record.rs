@@ -1,8 +1,67 @@
 use super::prompt::Prompt;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Type};
-use time::OffsetDateTime;
+use time::PrimitiveDateTime;
+use time::macros::format_description;
 use utoipa::ToSchema;
+
+const FORMAT: &[time::format_description::FormatItem<'static>] =
+    format_description!("[year]-[month]-[day]T[hour]:[minute]:[second].[subsecond]");
+
+pub mod iso8601 {
+    use super::*;
+    use serde::{Deserializer, Serializer};
+
+    pub fn serialize<S>(value: &PrimitiveDateTime, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let sdt = value.format(FORMAT).map_err(serde::ser::Error::custom)?;
+        s.serialize_str(&sdt)
+    }
+
+    pub fn deserialize<'de, D>(d: D) -> Result<PrimitiveDateTime, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let opt = String::deserialize(d)?;
+        let dt = PrimitiveDateTime::parse(&opt, FORMAT).map_err(serde::de::Error::custom)?;
+        Ok(dt)
+    }
+
+    pub mod option {
+        use super::*;
+        use serde::{Deserializer, Serializer};
+
+        pub fn serialize<S>(value: &Option<PrimitiveDateTime>, s: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            match value {
+                Some(dt) => {
+                    let sdt = dt.format(FORMAT).map_err(serde::ser::Error::custom)?;
+                    s.serialize_str(&sdt)
+                }
+                None => s.serialize_none(),
+            }
+        }
+
+        pub fn deserialize<'de, D>(d: D) -> Result<Option<PrimitiveDateTime>, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let opt = Option::<String>::deserialize(d)?;
+            match opt {
+                Some(s) => {
+                    let dt =
+                        PrimitiveDateTime::parse(&s, FORMAT).map_err(serde::de::Error::custom)?;
+                    Ok(Some(dt))
+                }
+                None => Ok(None),
+            }
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, ToSchema, FromRow, Type)]
 pub struct ErrorMessage {
@@ -22,10 +81,10 @@ pub struct CreateLogRecord {
     pub response: String,
     pub prompt_user_id: String,
     pub prompt_app_hostname: String,
-    #[serde(with = "time::serde::iso8601")]
-    pub prompt_submit_ts: OffsetDateTime,
-    #[serde(with = "time::serde::iso8601")]
-    pub response_receipt_ts: OffsetDateTime,
+    #[serde(with = "iso8601")]
+    pub prompt_submit_ts: PrimitiveDateTime,
+    #[serde(with = "iso8601")]
+    pub response_receipt_ts: PrimitiveDateTime,
     pub input_tokens: i64,
     pub output_tokens: i64,
     pub total_tokens: i64,
@@ -50,10 +109,10 @@ pub struct LogRecord {
     pub response: String,
     pub prompt_user_id: String,
     pub prompt_app_hostname: String,
-    #[serde(with = "time::serde::iso8601")]
-    pub prompt_submit_ts: OffsetDateTime,
-    #[serde(with = "time::serde::iso8601")]
-    pub response_receipt_ts: OffsetDateTime,
+    #[serde(with = "iso8601")]
+    pub prompt_submit_ts: PrimitiveDateTime,
+    #[serde(with = "iso8601")]
+    pub response_receipt_ts: PrimitiveDateTime,
     pub input_tokens: i64,
     pub output_tokens: i64,
     pub total_tokens: i64,
@@ -72,51 +131,11 @@ pub struct PatchLogRecord {
     pub response: Option<String>,
     pub prompt_user_id: Option<String>,
     pub prompt_app_hostname: Option<String>,
-    #[serde(with = "time::serde::iso8601::option")]
-    pub prompt_submit_ts: Option<OffsetDateTime>,
-    #[serde(with = "time::serde::iso8601::option")]
-    pub response_receipt_ts: Option<OffsetDateTime>,
+    #[serde(with = "iso8601::option")]
+    pub prompt_submit_ts: Option<PrimitiveDateTime>,
+    #[serde(with = "iso8601::option")]
+    pub response_receipt_ts: Option<PrimitiveDateTime>,
     pub input_tokens: Option<i64>,
     pub output_tokens: Option<i64>,
     pub total_tokens: Option<i64>,
-}
-
-impl LogRecord {
-    pub fn new(
-        id: i64,
-        model_provider: String,
-        model_name: String,
-        model_version: String,
-        app_name: String,
-        app_project: String,
-        app_version: String,
-        prompt: Vec<Prompt>,
-        response: String,
-        prompt_user_id: String,
-        prompt_app_hostname: String,
-        prompt_submit_ts: OffsetDateTime,
-        response_receipt_ts: OffsetDateTime,
-        input_tokens: i64,
-        output_tokens: i64,
-        total_tokens: i64,
-    ) -> Self {
-        Self {
-            id,
-            model_provider,
-            model_name,
-            model_version,
-            app_name,
-            app_project,
-            app_version,
-            prompt,
-            response,
-            prompt_user_id,
-            prompt_app_hostname,
-            prompt_submit_ts,
-            response_receipt_ts,
-            input_tokens,
-            output_tokens,
-            total_tokens,
-        }
-    }
 }
