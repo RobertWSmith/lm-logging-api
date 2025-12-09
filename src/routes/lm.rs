@@ -2,13 +2,14 @@ use axum::Json;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use sqlx::SqlitePool;
 
 pub mod chat_role;
 pub mod log_record;
 pub mod prompt;
 
-use crate::database::{get_log_record, insert_create_log_record, patch_log_record, update_log_record, AppState};
+use crate::database::{
+    AppState, get_log_record, insert_create_log_record, patch_log_record, update_log_record,
+};
 use log_record::{CreateLogRecord, ErrorMessage, LogRecord, LogRecordResponse, PatchLogRecord};
 
 #[utoipa::path(
