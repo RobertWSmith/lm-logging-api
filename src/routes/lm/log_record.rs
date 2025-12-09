@@ -5,6 +5,11 @@ use time::OffsetDateTime;
 use utoipa::ToSchema;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, ToSchema, FromRow, Type)]
+pub struct ErrorMessage {
+    pub message: String,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, ToSchema, FromRow, Type)]
 pub struct CreateLogRecord {
     pub model_provider: String,
     pub model_name: String,
@@ -54,6 +59,28 @@ pub struct LogRecord {
     pub total_tokens: i64,
 }
 
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, ToSchema, FromRow, Type)]
+pub struct PatchLogRecord {
+    pub model_provider: Option<String>,
+    pub model_name: Option<String>,
+    pub model_version: Option<String>,
+    pub app_name: Option<String>,
+    pub app_project: Option<String>,
+    pub app_version: Option<String>,
+    #[sqlx(json)]
+    pub prompt: Option<Vec<Prompt>>,
+    pub response: Option<String>,
+    pub prompt_user_id: Option<String>,
+    pub prompt_app_hostname: Option<String>,
+    #[serde(with = "time::serde::iso8601::option")]
+    pub prompt_submit_ts: Option<OffsetDateTime>,
+    #[serde(with = "time::serde::iso8601::option")]
+    pub response_receipt_ts: Option<OffsetDateTime>,
+    pub input_tokens: Option<i64>,
+    pub output_tokens: Option<i64>,
+    pub total_tokens: Option<i64>,
+}
+
 impl LogRecord {
     pub fn new(
         id: i64,
@@ -91,47 +118,5 @@ impl LogRecord {
             output_tokens,
             total_tokens,
         }
-    }
-
-    pub fn from_create_log_record(id: i64, create_log_record: CreateLogRecord) -> Self {
-        Self {
-            id,
-            model_provider: create_log_record.model_provider,
-            model_name: create_log_record.model_name,
-            model_version: create_log_record.model_version,
-            app_name: create_log_record.app_name,
-            app_project: create_log_record.app_project,
-            app_version: create_log_record.app_version,
-            prompt: create_log_record.prompt,
-            response: create_log_record.response,
-            prompt_user_id: create_log_record.prompt_user_id,
-            prompt_app_hostname: create_log_record.prompt_app_hostname,
-            prompt_submit_ts: create_log_record.prompt_submit_ts,
-            response_receipt_ts: create_log_record.response_receipt_ts,
-            input_tokens: create_log_record.input_tokens,
-            output_tokens: create_log_record.output_tokens,
-            total_tokens: create_log_record.total_tokens,
-        }
-    }
-
-    pub fn new_error(id: i64) -> Self {
-        Self::new(
-            id,
-            "".into(),
-            "".into(),
-            "".into(),
-            "".into(),
-            "".into(),
-            "".into(),
-            vec![],
-            "".into(),
-            "".into(),
-            "".into(),
-            OffsetDateTime::UNIX_EPOCH,
-            OffsetDateTime::UNIX_EPOCH,
-            -1,
-            -1,
-            -2,
-        )
     }
 }
